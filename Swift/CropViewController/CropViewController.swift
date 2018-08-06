@@ -156,6 +156,18 @@ open class CropViewController: UIViewController, TOCropViewControllerDelegate {
     }
     
     /**
+     A list of required aspect ratios
+     */
+    public var requiredAspectRatios: [CGSize]? {
+        set {
+            toCropViewController.requiredAspectRatios = newValue?.map { NSValue(cgSize: $0) }
+        }
+        get {
+            return toCropViewController.requiredAspectRatios?.map { $0.cgSizeValue }
+        }
+    }
+
+    /**
      A CGSize value representing a custom aspect ratio, not listed in the presets.
      E.g. A ratio of 4:3 would be represented as (CGSize){4.0f, 3.0f}
      */

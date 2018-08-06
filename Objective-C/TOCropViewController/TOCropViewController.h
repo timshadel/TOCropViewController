@@ -139,6 +139,12 @@
 @property (nonatomic, assign) TOCropViewControllerAspectRatioPreset aspectRatioPreset;
 
 /**
+ A list of aspect ratios, from which the final crop must be selected.
+ The initial aspect ratio used will be the first item in the list.
+ */
+@property (nullable, nonatomic, strong) NSArray<NSValue *> *requiredAspectRatios;
+
+/**
  A CGSize value representing a custom aspect ratio, not listed in the presets.
  E.g. A ratio of 4:3 would be represented as (CGSize){4.0f, 3.0f}
  */

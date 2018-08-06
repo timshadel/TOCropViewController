@@ -132,7 +132,13 @@ static const CGFloat kTOCropViewControllerToolbarHeight = 44.0f;
     self.toolbar.doneButtonTapped   = ^{ [weakSelf doneButtonTapped]; };
     self.toolbar.cancelButtonTapped = ^{ [weakSelf cancelButtonTapped]; };
     self.toolbar.resetButtonTapped = ^{ [weakSelf resetCropViewLayout]; };
-    self.toolbar.clampButtonTapped = ^{ [weakSelf showAspectRatioDialog]; };
+    if (self.requiredAspectRatios == nil) {
+        self.toolbar.clampButtonTapped = ^{ [weakSelf showAspectRatioDialog]; };
+    } else {
+        self.toolbar.clampButtonTapped = ^{ [weakSelf showRequiredAspectRatioDialog]; };
+        self.cropView.aspectRatioLockEnabled = YES;
+        self.toolbar.clampButtonGlowing = YES;
+    }
     self.toolbar.rotateCounterclockwiseButtonTapped = ^{ [weakSelf rotateCropViewCounterclockwise]; };
     self.toolbar.rotateClockwiseButtonTapped        = ^{ [weakSelf rotateCropViewClockwise]; };
 }
@@ -638,11 +644,83 @@ static const CGFloat kTOCropViewControllerToolbarHeight = 44.0f;
     }
 }
 
+- (void)showRequiredAspectRatioDialog
+{
+    if (self.requiredAspectRatios == nil || self.requiredAspectRatios.count == 0) {
+        return;
+    }
+
+    // Get the resource bundle depending on the framework/dependency manager we're using
+    NSBundle *resourceBundle = TO_CROP_VIEW_RESOURCE_BUNDLE_FOR_OBJECT(self);
+
+    //Prepare the localized options
+    NSString *cancelButtonTitle = NSLocalizedStringFromTableInBundle(@"Cancel", @"TOCropViewControllerLocalizable", resourceBundle, nil);
+
+    //Prepare the list that will be fed to the alert view/controller
+    NSMutableArray *items = [NSMutableArray array];
+    for (NSValue *value in self.requiredAspectRatios) {
+        CGSize ratio = [value CGSizeValue];
+        [items addObject:[NSString stringWithFormat:@"%.0f:%.0f",round(ratio.width),round(ratio.height)]];
+    }
+
+    //Present via a UIAlertController if >= iOS 8
+    if (NSClassFromString(@"UIAlertController")) {
+        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+        [alertController addAction:[UIAlertAction actionWithTitle:cancelButtonTitle style:UIAlertActionStyleCancel handler:nil]];
+
+        //Add each item to the alert controller
+        NSInteger i = 0;
+        for (NSString *item in items) {
+            UIAlertAction *action = [UIAlertAction actionWithTitle:item style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                CGSize ratio = [[self.requiredAspectRatios objectAtIndex:i] CGSizeValue];
+                [self.cropView setAspectRatio:ratio animated:YES];
+            }];
+            [alertController addAction:action];
+
+            i++;
+        }
+
+        alertController.modalPresentationStyle = UIModalPresentationPopover;
+        UIPopoverPresentationController *presentationController = [alertController popoverPresentationController];
+        presentationController.sourceView = self.toolbar;
+        presentationController.sourceRect = self.toolbar.clampButtonFrame;
+        [self presentViewController:alertController animated:YES completion:nil];
+    }
+    else {
+
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_8_0
+        //TODO: Completely overhaul this once iOS 7 support is dropped
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        UIActionSheet *actionSheet = [[UIActionSheet alloc] initWithTitle:nil
+                                                                 delegate:self
+                                                        cancelButtonTitle:cancelButtonTitle
+                                                   destructiveButtonTitle:nil
+                                                        otherButtonTitles:nil];
+
+        for (NSString *item in items) {
+            [actionSheet addButtonWithTitle:item];
+        }
+
+        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+            [actionSheet showFromRect:self.toolbar.clampButtonFrame inView:self.toolbar animated:YES];
+        else
+            [actionSheet showInView:self.view];
+#pragma clang diagnostic pop
+#endif
+    }
+}
+
 #if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_8_0
 - (void)actionSheet:(UIActionSheet *)actionSheet didDismissWithButtonIndex:(NSInteger)buttonIndex
 {
-    [self setAspectRatioPreset:(TOCropViewControllerAspectRatioPreset)buttonIndex animated:YES];
-    self.aspectRatioLockEnabled = YES;
+    if (self.requiredAspectRatios == nil) {
+        [self setAspectRatioPreset:(TOCropViewControllerAspectRatioPreset)buttonIndex animated:YES];
+        self.aspectRatioLockEnabled = YES;
+    } else {
+        CGSize ratio = [[self.requiredAspectRatios objectAtIndex:buttonIndex] CGSizeValue];
+        [self.cropView setAspectRatio:ratio animated:YES];
+    }
 }
 #endif
 
@@ -698,6 +776,17 @@ static const CGFloat kTOCropViewControllerToolbarHeight = 44.0f;
     }
     
     [self.cropView setAspectRatio:aspectRatio animated:animated];
+}
+
+- (void)setRequiredAspectRatios:(NSArray<NSValue *> *)requiredAspectRatios
+{
+    if ([requiredAspectRatios count] == 0) {
+        _requiredAspectRatios = nil;
+        return;
+    }
+    _requiredAspectRatios = requiredAspectRatios;
+    CGSize aspectRatio = [[requiredAspectRatios firstObject] CGSizeValue];
+    [self.cropView setAspectRatio:aspectRatio animated:NO];
 }
 
 - (void)rotateCropViewClockwise
