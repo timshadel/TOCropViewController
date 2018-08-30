@@ -558,7 +558,7 @@ static const CGFloat kTOCropViewControllerToolbarHeight = 44.0f;
 {
     BOOL animated = (self.cropView.angle == 0);
     
-    if (self.resetAspectRatioEnabled) {
+    if (self.resetAspectRatioEnabled && self.requiredAspectRatios == nil) {
         self.aspectRatioLockEnabled = NO;
     }
     
@@ -786,7 +786,7 @@ static const CGFloat kTOCropViewControllerToolbarHeight = 44.0f;
     }
     _requiredAspectRatios = requiredAspectRatios;
     CGSize aspectRatio = [[requiredAspectRatios firstObject] CGSizeValue];
-    [self.cropView setAspectRatio:aspectRatio animated:NO];
+    [self.cropView setDefaultRequiredAspectRatio:aspectRatio animated:NO];
 }
 
 - (void)rotateCropViewClockwise

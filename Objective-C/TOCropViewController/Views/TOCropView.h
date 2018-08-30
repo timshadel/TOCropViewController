@@ -105,6 +105,11 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) CGSize aspectRatio;
 
 /**
+ The aspect ratio to set when the user resets the view.
+ */
+@property (nonatomic, assign) CGSize defaultRequiredAspectRatio;
+
+/**
  When the cropping box is locked to its current aspect ratio (But can still be resized)
  */
 @property (nonatomic, assign) BOOL aspectRatioLockEnabled;
@@ -219,6 +224,16 @@ The minimum croping aspect ratio. If set, user is prevented from setting croppin
  @param animated Whether the locking effect is animated
  */
 - (void)setAspectRatio:(CGSize)aspectRatio animated:(BOOL)animated;
+
+/**
+ Changes the aspect ratio of the crop box to match the one specified and sets the aspect ratio to change to when
+ user taps the resetAspectRatio button.
+
+ @param aspectRatio The aspect ratio (For example 16:9 is 16.0f/9.0f). 'CGSizeZero' will reset it to the image's own ratio
+ @param animated Whether the locking effect is animated
+ */
+
+- (void)setDefaultRequiredAspectRatio:(CGSize)aspectRatio animated:(BOOL)animated;
 
 /**
  Rotates the entire canvas to a 90-degree angle. The default rotation is counterclockwise.
