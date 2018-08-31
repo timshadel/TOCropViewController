@@ -74,6 +74,7 @@ typedef NS_ENUM(NSInteger, TOCropViewOverlayEdge) {
 @property (nonatomic, strong) NSTimer *resetTimer;  /* The timer used to reset the view after the user stops interacting with it */
 @property (nonatomic, assign) BOOL editing;         /* Used to denote the active state of the user manipulating the content */
 @property (nonatomic, assign) BOOL disableForgroundMatching; /* At times during animation, disable matching the forground image view to the background */
+@property (nonatomic, assign) BOOL aspectRatioRequired; /* Used when resetLayoutToDefaultAnimated is called to determine if it should reset to the _defaultRequiredAspectRatio. */
 
 /* Pre-screen-rotation state information */
 @property (nonatomic, assign) CGPoint rotationContentOffset;
@@ -149,7 +150,8 @@ typedef NS_ENUM(NSInteger, TOCropViewOverlayEdge) {
     self.cropAdjustingDelay = kTOCropTimerDuration;
     self.cropViewPadding = kTOCropViewPadding;
     self.maximumZoomScale = kTOMaximumZoomScale;
-    
+    self.aspectRatioRequired = NO;
+
     /* Dynamic animation blurring is only possible on iOS 9, however since the API was available on iOS 8,
      we'll need to manually check the system version to ensure that it's available. */
     self.dynamicBlurEffect = ([[[UIDevice currentDevice] systemVersion] compare:@"9.0" options:NSNumericSearch] != NSOrderedAscending);
@@ -696,8 +698,12 @@ typedef NS_ENUM(NSInteger, TOCropViewOverlayEdge) {
     // If resetting the crop view includes resetting the aspect ratio,
     // reset it to zero here. But set the ivar directly since there's no point
     // in performing the relayout calculations right before a reset.
-    if (self.hasAspectRatio && self.resetAspectRatioEnabled) {
-        _aspectRatio = CGSizeZero;
+    if (self.hasAspectRatio) {
+        if (_aspectRatioRequired) {
+            _aspectRatio = _defaultRequiredAspectRatio;
+        } else if (self.resetAspectRatioEnabled) {
+            _aspectRatio = CGSizeZero;
+        }
     }
     
     if (animated == NO || self.angle != 0) {
@@ -1375,6 +1381,12 @@ typedef NS_ENUM(NSInteger, TOCropViewOverlayEdge) {
     [self setAspectRatio:aspectRatio animated:NO];
 }
 
+- (void)setDefaultRequiredAspectRatio:(CGSize)aspectRatio animated:(BOOL)animated
+{
+    _defaultRequiredAspectRatio = aspectRatio;
+    self.aspectRatioRequired = YES;
+    [self setAspectRatio:aspectRatio animated:animated];
+}
 - (void)setAspectRatio:(CGSize)aspectRatio animated:(BOOL)animated
 {
     _aspectRatio = aspectRatio;
