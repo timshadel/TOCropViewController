@@ -563,6 +563,12 @@ static const CGFloat kTOCropViewControllerToolbarHeight = 44.0f;
     }
     
     [self.cropView resetLayoutToDefaultAnimated:animated];
+
+    if (self.requiredAspectRatios != nil) {
+        self.requiredAspectRatios = _requiredAspectRatios;
+        self.cropView.aspectRatioLockEnabled = YES;
+        self.toolbar.clampButtonGlowing = YES;
+    }
 }
 
 #pragma mark - Aspect Ratio Handling -
